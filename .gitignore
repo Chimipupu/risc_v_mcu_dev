@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+/src/pio/seeedstudio_gd32v_nuclei_sdk/.vscode
+/src/pio/seeedstudio_gd32v_nuclei_sdk/.pio
