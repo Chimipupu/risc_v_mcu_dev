@@ -76,99 +76,102 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 
 #include "nuclei_sdk_soc.h"
 
-/* The period of the example software timer, specified in milliseconds, and
-converted to ticks using the pdMS_TO_TICKS() macro. */
+// S/Wタイマの周期
 #define mainSOFTWARE_TIMER_PERIOD_MS    pdMS_TO_TICKS(1000)
+// FreeRTOSのキューの最大長
 #define mainQUEUE_LENGTH                (1)
 
-static void prvSetupHardware(void);
 extern void idle_task(void);
-static void vExampleTimerCallback(TimerHandle_t xTimer);
+static void xSoftware1000msTimerCallback(TimerHandle_t xTimer);
 
-/* The queue used by the queue send and queue receive tasks. */
 static QueueHandle_t xQueue = NULL;
+static TaskHandle_t MainTask_Handler;
+static TaskHandle_t LedTask_Handler;
+// static uint32_t s_cnt = 0;
 
-static TaskHandle_t StartTask1_Handler;
-static TaskHandle_t StartTask2_Handler;
+void main_task(void *pvParameters);
+void led_task(void *pvParameters);
+static void inithardware(void);
+static void initfreertos(void);
 
-void prvSetupHardware(void)
+static void inithardware(void)
 {
+    // GPIO
+    // TODO:ボタンとLEDのGPIO初期化
 
+    // S/WTimer
+    TimerHandle_t xSoftware1000msTimer = NULL;
+    xSoftware1000msTimer = xTimerCreate((const char *)"1000msTimer",
+                                        mainSOFTWARE_TIMER_PERIOD_MS,
+                                        pdTRUE, (void *)0,
+                                        xSoftware1000msTimerCallback);
+    xTimerStart(xSoftware1000msTimer, 0);
 }
 
-void start_task1(void *pvParameters);
-void start_task2(void *pvParameters);
-
-int main(void)
+void main_task(void *pvParameters)
 {
-    TimerHandle_t xExampleSoftwareTimer = NULL;
+    printf("Main Task Inited!\r\n");
 
-    /* Configure the system ready to run the demo.  The clock configuration
-    can be done here if it was not done before main() was called. */
-    prvSetupHardware();
+    while(1)
+    {
+        // TODO:メインタスク処理
+        vTaskDelay(100);
+    }
+}
 
-    xQueue = xQueueCreate(/* The number of items the queue can hold. */
-                          mainQUEUE_LENGTH,
-                          /* The size of each item the queue holds. */
-                          sizeof(uint32_t));
+void led_task(void *pvParameters)
+{
+    printf("LED Task Inited!\r\n");
+
+    while(1)
+    {
+        // TODO:LEDタスク処理
+        vTaskDelay(300);
+    }
+}
+
+static void initfreertos(void)
+{
+    xQueue = xQueueCreate(mainQUEUE_LENGTH, sizeof(uint32_t));
 
     if (xQueue == NULL) {
         printf("Unable to create xQueue due to low memory.\n");
         while(1);
     }
-    xTaskCreate((TaskFunction_t)start_task1, (const char *)"start_task1",
-                (uint16_t)256, (void *)NULL, (UBaseType_t)2,
-                (TaskHandle_t *)&StartTask1_Handler);
 
-    xTaskCreate((TaskFunction_t)start_task2, (const char *)"start_task2",
-                (uint16_t)256, (void *)NULL, (UBaseType_t)1,
-                (TaskHandle_t *)&StartTask2_Handler);
+    xTaskCreate((TaskFunction_t)main_task,
+                (const char *)"main_task",
+                (uint16_t)512,
+                (void *)NULL,
+                (UBaseType_t)2,
+                (TaskHandle_t *)&MainTask_Handler);
 
-    xExampleSoftwareTimer =
-        xTimerCreate((const char *)"ExTimer", mainSOFTWARE_TIMER_PERIOD_MS,
-                     pdTRUE, (void *)0, vExampleTimerCallback);
+    xTaskCreate((TaskFunction_t)led_task,
+                (const char *)"led_task",
+                (uint16_t)256,
+                (void *)NULL,
+                (UBaseType_t)1,
+                (TaskHandle_t *)&LedTask_Handler);
+}
 
-    xTimerStart(xExampleSoftwareTimer, 0);
-    printf("Before StartScheduler\r\n");
-
+int main(void)
+{
+    inithardware();
+    initfreertos();
     vTaskStartScheduler();
 
-    printf("OS should never run to here\r\n");
-
-    while(1);
+    return 0;
 }
 
-void start_task1(void *pvParameters)
+// FreeRTOS S/Wタイマ(1000ms)
+static void xSoftware1000msTimerCallback(TimerHandle_t xTimer)
 {
-    int cnt = 0;
-    printf("Enter to task_1\r\n");
-    while (1) {
-        printf("task1 is running %d.....\r\n", cnt++);
-        vTaskDelay(200);
-    }
-}
-
-void start_task2(void *pvParameters)
-{
-    int cnt = 0;
-    printf("Enter to task_2\r\n");
-    while (1) {
-        printf("task2 is running %d.....\r\n", cnt++);
-        vTaskDelay(200);
-    }
-}
-
-static void vExampleTimerCallback(TimerHandle_t xTimer)
-{
-    /* The timer has expired.  Count the number of times this happens.  The
-    timer that calls this function is an auto re-load timer, so it will
-    execute periodically. */
-    static int cnt = 0;
-    printf("timers Callback %d\r\n", cnt++);
+    asm volatile ("nop");
 }
 
 void vApplicationTickHook(void)
