@@ -50,4 +50,4 @@ https://wiki.seeedstudio.com/SeeedStudio-GD32-RISC-V-Dev-Board/
   - SDスロット
   - LCD IF : 8080 16bit (SPI)
 
-![alt text](doc\seeedstudio_gd32\seeedstudio_gd32.png)
+![alt text](doc/seeedstudio_gd32/seeedstudio_gd32.png)
